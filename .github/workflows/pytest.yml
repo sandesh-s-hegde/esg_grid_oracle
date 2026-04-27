@@ -14,6 +14,6 @@ jobs:
     - name: Install core dependencies
       run: |
         pip install -r requirements.txt
-        pip install pytest httpx
+        pip install pytest httpx==0.27.2
     - name: Run Pytest Test Suite
       run: pytest test_api.py
