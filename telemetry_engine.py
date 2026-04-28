@@ -1,3 +1,4 @@
+import time
 import random
 import logging
 from datetime import datetime, timezone
@@ -7,15 +8,23 @@ logger = logging.getLogger("CarbonOracle")
 
 
 class CarbonIntensityAPI:
-    """Simulates real-time grid carbon intensity (gCO2eq/kWh) for spatial energy arbitrage."""
+    """Simulates real-time grid carbon intensity with a 5-minute TTL cache."""
 
     def __init__(self):
         self.supported_regions = {"DE", "FR", "IE", "UK", "NL"}
+        self._cache = {}
+        self.ttl_seconds = 300
 
     def get_live_carbon_intensity(self, region: str) -> dict:
         if region not in self.supported_regions:
             logger.error(f"Region {region} is out of bounds.")
             return {"error": "Region not supported"}
+
+        current_time = time.time()
+
+        if region in self._cache and (current_time - self._cache[region]['timestamp'] < self.ttl_seconds):
+            logger.info(f"Serving CACHED carbon data for {region}")
+            return self._cache[region]['data']
 
         intensity_models = {
             "FR": random.randint(30, 60),
@@ -26,26 +35,16 @@ class CarbonIntensityAPI:
         }
 
         intensity = intensity_models.get(region, 250)
+        status = "GREEN" if intensity < 150 else "AMBER" if intensity < 350 else "RED"
 
-        if intensity < 150:
-            status = "GREEN"
-        elif intensity < 350:
-            status = "AMBER"
-        else:
-            status = "RED"
+        logger.info(f"Fetched NEW Carbon Intensity for {region}: {intensity} gCO2eq/kWh [{status}]")
 
-        logger.info(f"Fetched Carbon Intensity for {region}: {intensity} gCO2eq/kWh [{status}]")
-
-        return {
+        response_data = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "region": region,
             "intensity_gco2_kwh": intensity,
             "grid_status": status
         }
 
-
-if __name__ == "__main__":
-    oracle = CarbonIntensityAPI()
-    oracle.get_live_carbon_intensity("FR")
-    oracle.get_live_carbon_intensity("DE")
-    oracle.get_live_carbon_intensity("IE")
+        self._cache[region] = {'timestamp': current_time, 'data': response_data}
+        return response_data
