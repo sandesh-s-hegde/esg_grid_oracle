@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  esg_oracle:
+    build: .
+    container_name: esg_grid_oracle_service
+    ports:
+      - "8000:8000"
+    environment:
+      - ESG_API_KEY=${ESG_API_KEY:-dev-secret-key}
+    restart: unless-stopped
