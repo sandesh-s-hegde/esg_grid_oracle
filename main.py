@@ -12,6 +12,14 @@ logger = logging.getLogger("FastAPI")
 app = FastAPI(title="ESG Grid Oracle API", version="1.2.0")
 oracle = CarbonIntensityAPI()
 
+class CarbonResponse(BaseModel):
+    timestamp: str
+    region: str
+    intensity_gco2_kwh: int
+    grid_status: str
+
+class BatchCarbonRequest(BaseModel):
+    regions: List[str]
 
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
