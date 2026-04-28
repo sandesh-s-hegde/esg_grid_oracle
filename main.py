@@ -1,6 +1,7 @@
+import time
 import logging
 from typing import List
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
 from pydantic import BaseModel
 from telemetry_engine import CarbonIntensityAPI
 from auth import verify_api_key
@@ -8,17 +9,17 @@ from auth import verify_api_key
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] ESG_API: %(message)s")
 logger = logging.getLogger("FastAPI")
 
-app = FastAPI(title="ESG Grid Oracle API", version="1.1.0")
+app = FastAPI(title="ESG Grid Oracle API", version="1.2.0")
 oracle = CarbonIntensityAPI()
 
-class CarbonResponse(BaseModel):
-    timestamp: str
-    region: str
-    intensity_gco2_kwh: int
-    grid_status: str
 
-class BatchCarbonRequest(BaseModel):
-    regions: List[str]
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    response.headers["X-Process-Time"] = str(process_time)
+    return response
 
 @app.get("/health")
 def health_check():
