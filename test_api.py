@@ -17,3 +17,17 @@ def test_get_carbon_intensity_authorized():
     assert response.status_code == 200
     assert response.json()["region"] == "FR"
     assert "intensity_gco2_kwh" in response.json()
+
+
+def test_get_batch_carbon_intensity_authorized():
+    payload = {"regions": ["FR", "DE"]}
+    response = client.post("/api/v1/carbon/batch", json=payload, headers=headers)
+    assert response.status_code == 200
+
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) == 2
+
+    regions_returned = [item["region"] for item in data]
+    assert "FR" in regions_returned
+    assert "DE" in regions_returned
