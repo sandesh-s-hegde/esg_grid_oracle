@@ -12,6 +12,8 @@ logger = logging.getLogger("FastAPI")
 app = FastAPI(title="ESG Grid Oracle API", version="1.2.0")
 oracle = CarbonIntensityAPI()
 
+BOOT_TIME = time.time()
+
 class CarbonResponse(BaseModel):
     timestamp: str
     region: str
@@ -31,7 +33,12 @@ async def add_process_time_header(request: Request, call_next):
 
 @app.get("/health")
 def health_check():
-    return {"status": "online", "service": "ESG Grid Oracle"}
+    uptime = time.time() - BOOT_TIME
+    return {
+        "status": "online",
+        "service": "ESG Grid Oracle",
+        "uptime_seconds": round(uptime, 2)
+    }
 
 @app.get("/api/v1/carbon/{region}", response_model=CarbonResponse)
 def get_carbon_intensity(region: str, api_key: str = Depends(verify_api_key)):
