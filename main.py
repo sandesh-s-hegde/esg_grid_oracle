@@ -8,30 +8,37 @@ from pydantic import BaseModel
 from telemetry_engine import CarbonIntensityAPI
 from auth import verify_api_key
 
+# Enterprise Logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] ESG_API: %(message)s")
 logger = logging.getLogger("FastAPI")
 
+# API Initialization
 app = FastAPI(title="ESG Grid Oracle API", version="1.3.0")
 
-# Enable CORS for frontend integration
+# Security: CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, replace "*" with your specific frontend domains
+    allow_origins=["*"],  # Replace "*" with specific domains in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Core Engine & Telemetry State
 oracle = CarbonIntensityAPI()
 BOOT_TIME = time.time()
 
-@app.get("/", include_in_schema=False)
-def redirect_to_docs():
-    """Automatically redirect root pings to the Swagger UI Documentation."""
-    return RedirectResponse(url="/docs")
+# Data Models
+class CarbonResponse(BaseModel):
+    timestamp: str
+    region: str
+    intensity_gco2_kwh: int
+    grid_status: str
 
-# ... (Keep your middleware, /health, and /api/v1/carbon routes exactly the same below this) ...
+class BatchCarbonRequest(BaseModel):
+    regions: List[str]
 
+# Performance Middleware
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
     start_time = time.time()
@@ -39,6 +46,12 @@ async def add_process_time_header(request: Request, call_next):
     process_time = time.time() - start_time
     response.headers["X-Process-Time"] = str(process_time)
     return response
+
+# Routes
+@app.get("/", include_in_schema=False)
+def redirect_to_docs():
+    """Redirect root pings to Swagger UI Documentation."""
+    return RedirectResponse(url="/docs")
 
 @app.get("/health")
 def health_check():
