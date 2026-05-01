@@ -8,6 +8,22 @@ from pydantic import BaseModel
 from telemetry_engine import CarbonIntensityAPI
 from auth import verify_api_key
 
+from pydantic import BaseModel, Field
+
+# ... (Keep existing imports and app initialization) ...
+
+# Data Models
+class CarbonResponse(BaseModel):
+    timestamp: str = Field(..., description="ISO 8601 UTC timestamp of the reading")
+    region: str = Field(..., description="2-letter country code", examples=["FR", "DE"])
+    intensity_gco2_kwh: int = Field(..., description="Grams of CO2 equivalent per kWh")
+    grid_status: str = Field(..., description="Dispatch status: GREEN, AMBER, or RED", examples=["GREEN"])
+
+class BatchCarbonRequest(BaseModel):
+    regions: List[str] = Field(..., description="List of 2-letter country codes to query", examples=[["FR", "DE", "IE"]])
+
+# ... (Keep all your routes below exactly the same) ...
+
 # Enterprise Logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] ESG_API: %(message)s")
 logger = logging.getLogger("FastAPI")
