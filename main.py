@@ -3,35 +3,16 @@ import logging
 from typing import List
 from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
-from pydantic import BaseModel
+from fastapi.responses import RedirectResponse, JSONResponse
+from pydantic import BaseModel, Field
 from telemetry_engine import CarbonIntensityAPI
 from auth import verify_api_key
 
-from pydantic import BaseModel, Field
-
-# ... (Keep existing imports and app initialization) ...
-
-# Data Models
-class CarbonResponse(BaseModel):
-    timestamp: str = Field(..., description="ISO 8601 UTC timestamp of the reading")
-    region: str = Field(..., description="2-letter country code", examples=["FR", "DE"])
-    intensity_gco2_kwh: int = Field(..., description="Grams of CO2 equivalent per kWh")
-    grid_status: str = Field(..., description="Dispatch status: GREEN, AMBER, or RED", examples=["GREEN"])
-
-class BatchCarbonRequest(BaseModel):
-    regions: List[str] = Field(..., description="List of 2-letter country codes to query", examples=[["FR", "DE", "IE"]])
-
-# ... (Keep all your routes below exactly the same) ...
-
-# Enterprise Logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] ESG_API: %(message)s")
 logger = logging.getLogger("FastAPI")
 
-# API Initialization
 app = FastAPI(title="ESG Grid Oracle API", version="1.3.0")
 
-# Security: CORS Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Replace "*" with specific domains in production
@@ -44,31 +25,15 @@ app.add_middleware(
 oracle = CarbonIntensityAPI()
 BOOT_TIME = time.time()
 
-# Data Models
 class CarbonResponse(BaseModel):
-    timestamp: str
-    region: str
-    intensity_gco2_kwh: int
-    grid_status: str
+    timestamp: str = Field(..., description="ISO 8601 UTC timestamp of the reading")
+    region: str = Field(..., description="2-letter country code", examples=["FR", "DE"])
+    intensity_gco2_kwh: int = Field(..., description="Grams of CO2 equivalent per kWh")
+    grid_status: str = Field(..., description="Dispatch status: GREEN, AMBER, or RED", examples=["GREEN"])
 
 class BatchCarbonRequest(BaseModel):
-    regions: List[str]
+    regions: List[str] = Field(..., description="List of 2-letter country codes to query", examples=[["FR", "DE", "IE"]])
 
-# Performance Middleware
-@app.middleware("http")
-async def add_process_time_header(request: Request, call_next):
-    start_time = time.time()
-    response = await call_next(request)
-    process_time = time.time() - start_time
-    response.headers["X-Process-Time"] = str(process_time)
-    return response
-
-# Routes
-from fastapi.responses import RedirectResponse, JSONResponse
-
-# ... (Existing code) ...
-
-# Global Exception Handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unhandled system crash on {request.url.path}: {str(exc)}")
@@ -81,10 +46,15 @@ async def global_exception_handler(request: Request, exc: Exception):
         }
     )
 
-# Routes
-@app.get("/", include_in_schema=False)
-# ... (Keep existing routes below) ...
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    response.headers["X-Process-Time"] = str(process_time)
+    return response
 
+# Routes
 @app.get("/", include_in_schema=False)
 def redirect_to_docs():
     """Redirect root pings to Swagger UI Documentation."""
