@@ -64,6 +64,27 @@ async def add_process_time_header(request: Request, call_next):
     return response
 
 # Routes
+from fastapi.responses import RedirectResponse, JSONResponse
+
+# ... (Existing code) ...
+
+# Global Exception Handler
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled system crash on {request.url.path}: {str(exc)}")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "Internal System Failure",
+            "message": "The ESG Oracle encountered an unexpected fault.",
+            "path": request.url.path
+        }
+    )
+
+# Routes
+@app.get("/", include_in_schema=False)
+# ... (Keep existing routes below) ...
+
 @app.get("/", include_in_schema=False)
 def redirect_to_docs():
     """Redirect root pings to Swagger UI Documentation."""
