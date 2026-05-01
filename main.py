@@ -69,16 +69,16 @@ def health_check():
         "uptime_seconds": round(uptime, 2)
     }
 
-@app.get("/api/v1/carbon/{region}", response_model=CarbonResponse)
-def get_carbon_intensity(region: str, api_key: str = Depends(verify_api_key)):
+@app.get("/api/v1/carbon/{region}", response_model=CarbonResponse, dependencies=[Depends(verify_api_key)])
+def get_carbon_intensity(region: str):
     region = region.upper()
     if region not in oracle.supported_regions:
         logger.warning(f"Invalid region requested: {region}")
         raise HTTPException(status_code=400, detail=f"Region {region} not supported.")
     return oracle.get_live_carbon_intensity(region)
 
-@app.post("/api/v1/carbon/batch", response_model=List[CarbonResponse])
-def get_batch_carbon_intensity(request: BatchCarbonRequest, api_key: str = Depends(verify_api_key)):
+@app.post("/api/v1/carbon/batch", response_model=List[CarbonResponse], dependencies=[Depends(verify_api_key)])
+def get_batch_carbon_intensity(request: BatchCarbonRequest):
     results = []
     for r in request.regions:
         r_upper = r.upper()
