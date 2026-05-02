@@ -21,3 +21,15 @@ If the German grid is currently red (high fossil fuel mix), the Oracle signals t
 * **Automated Compliance:** Provides a programmatic trail of carbon-optimized dispatching for ESG audits.
 * **Scope 3 Reduction:** Actively minimizes the carbon footprint of outsourced transportation logistics.
 * **Zero-Touch Orchestration:** Removes the human bottleneck from sustainable decision-making during high-stress supply chain shock events.
+
+# 🌍 ESG Grid Oracle API
+
+A high-performance, carbon-aware telemetry microservice. This API simulates real-time grid carbon intensity across European regions, enabling AI agents and routing engines to make sustainable, green-energy supply chain decisions.
+
+### Features
+* **Zero-Trust Security:** API Key protected endpoints.
+* **High Performance:** In-memory TTL caching and request telemetry.
+* **Batch Processing:** Evaluate multiple geographic regions in a single request.
+* **Developer Ready:** Fully Dockerized with automated CI/CD testing.
+
+*See `CONTRIBUTING.md` for setup instructions.*
