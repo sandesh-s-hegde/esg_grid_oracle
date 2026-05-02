@@ -60,7 +60,7 @@ def redirect_to_docs():
     """Redirect root pings to Swagger UI Documentation."""
     return RedirectResponse(url="/docs")
 
-@app.get("/health")
+@app.get("/health", tags=["System"])
 def health_check():
     uptime = time.time() - BOOT_TIME
     return {
@@ -69,7 +69,7 @@ def health_check():
         "uptime_seconds": round(uptime, 2)
     }
 
-@app.get("/api/v1/carbon/{region}", response_model=CarbonResponse, dependencies=[Depends(verify_api_key)])
+@app.get("/api/v1/carbon/{region}", response_model=CarbonResponse, dependencies=[Depends(verify_api_key)], tags=["Telemetry"])
 def get_carbon_intensity(region: str):
     region = region.upper()
     if region not in oracle.supported_regions:
@@ -77,7 +77,7 @@ def get_carbon_intensity(region: str):
         raise HTTPException(status_code=400, detail=f"Region {region} not supported.")
     return oracle.get_live_carbon_intensity(region)
 
-@app.post("/api/v1/carbon/batch", response_model=List[CarbonResponse], dependencies=[Depends(verify_api_key)])
+@app.post("/api/v1/carbon/batch", response_model=List[CarbonResponse], dependencies=[Depends(verify_api_key)], tags=["Telemetry"])
 def get_batch_carbon_intensity(request: BatchCarbonRequest):
     results = []
     for r in request.regions:
