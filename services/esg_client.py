@@ -9,7 +9,7 @@ ESG_ORACLE_URL = os.getenv("ESG_ORACLE_URL", "http://localhost:8000")
 async def fetch_carbon_intensity(region: str) -> dict:
     """Fetches real-time carbon telemetry from the ESG Oracle."""
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=2.0) as client:
             response = await client.get(f"{ESG_ORACLE_URL}/api/v1/carbon/{region}")
             response.raise_for_status()
             data = response.json()
