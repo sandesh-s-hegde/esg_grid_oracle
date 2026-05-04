@@ -47,7 +47,7 @@ The system implements a **Global Exception Handler** to intercept unexpected ser
 ### 🤖 3. Agentic Integration
 * **Deterministic Traffic Lighting:** Abstracts complex gCO2eq/kWh math into standardized `GREEN`, `AMBER`, and `RED` dispatch signals for rigid downstream AI and RPA consumption.
 * **Swarm Ready:** Architected specifically to act as an external tool/node for LLM Swarms (Gemini/OpenAI) to reason against during automated freight negotiation.
-
+* **Carbon-Aware Routing:** Natively integrates with the ESG Grid Oracle to perform real-time spatial energy arbitrage, actively routing fleets toward renewable-powered energy grids.
 ---
 
 ## ⚙️ Technical Architecture
