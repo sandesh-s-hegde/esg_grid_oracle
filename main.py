@@ -21,7 +21,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Core Engine & Telemetry State
 oracle = CarbonIntensityAPI()
 BOOT_TIME = time.time()
 
@@ -72,7 +71,7 @@ def health_check():
 @app.get("/api/v1/carbon/{region}", response_model=CarbonResponse, dependencies=[Depends(verify_api_key)], tags=["Telemetry"])
 def get_carbon_intensity(region: str):
     region = region.upper()
-    if region not in oracle.supported_regions:
+    if region not in oracle.SUPPORTED_REGIONS:
         logger.warning(f"Invalid region requested: {region}")
         raise HTTPException(status_code=400, detail=f"Region {region} not supported.")
     return oracle.get_live_carbon_intensity(region)
@@ -82,6 +81,6 @@ def get_batch_carbon_intensity(request: BatchCarbonRequest):
     results = []
     for r in request.regions:
         r_upper = r.upper()
-        if r_upper in oracle.supported_regions:
+        if r_upper in oracle.SUPPORTED_REGIONS:
             results.append(oracle.get_live_carbon_intensity(r_upper))
     return results
