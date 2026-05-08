@@ -1,30 +1,31 @@
-import time
 import logging
+import time
 from typing import List
-from fastapi import FastAPI, HTTPException, Depends, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse, JSONResponse
-from pydantic import BaseModel, Field
-from telemetry_engine import CarbonIntensityAPI
-from auth import verify_api_key
-from fastapi import Response
 
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, RedirectResponse
+from pydantic import BaseModel, Field
+
+from auth import verify_api_key
+from telemetry_engine import CarbonIntensityAPI
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] ESG_API: %(message)s")
 logger = logging.getLogger("FastAPI")
+
+BOOT_TIME = time.time()
+oracle = CarbonIntensityAPI()
 
 app = FastAPI(title="ESG Grid Oracle API", version="1.3.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Replace "*" with specific domains in production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-oracle = CarbonIntensityAPI()
-BOOT_TIME = time.time()
 
 class CarbonResponse(BaseModel):
     timestamp: str = Field(..., description="ISO 8601 UTC timestamp of the reading")
@@ -32,11 +33,13 @@ class CarbonResponse(BaseModel):
     intensity_gco2_kwh: int = Field(..., description="Grams of CO2 equivalent per kWh")
     grid_status: str = Field(..., description="Dispatch status: GREEN, AMBER, or RED", examples=["GREEN"])
 
+
 class BatchCarbonRequest(BaseModel):
     regions: List[str] = Field(..., description="List of 2-letter country codes to query", examples=[["FR", "DE", "IE"]])
 
+
 @app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     logger.error(f"Unhandled system crash on {request.url.path}: {str(exc)}")
     return JSONResponse(
         status_code=500,
@@ -47,6 +50,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         }
     )
 
+
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
     start_time = time.time()
@@ -55,13 +59,16 @@ async def add_process_time_header(request: Request, call_next):
     response.headers["X-Process-Time"] = str(process_time)
     return response
 
+
 @app.get("/", include_in_schema=False)
 def root_redirect():
     """Redirects the root URL directly to the API documentation."""
     return RedirectResponse(url="/docs")
 
+
 @app.get("/health", tags=["System"])
-def health_check():
+def health_check() -> dict:
+    """Returns the operational status and uptime of the service."""
     uptime = time.time() - BOOT_TIME
     return {
         "status": "online",
@@ -72,25 +79,28 @@ def health_check():
 
 @app.get("/api/v1/carbon/{region}", response_model=CarbonResponse, dependencies=[Depends(verify_api_key)], tags=["Telemetry"])
 def get_carbon_intensity(region: str, response: Response):
+    """Retrieves real-time carbon intensity data for a specific supported region."""
     region = region.upper()
     if region not in oracle.SUPPORTED_REGIONS:
-        raise HTTPException(status_code=400, detail="Region not supported")
-
-    @app.delete("/api/v1/carbon/cache", dependencies=[Depends(verify_api_key)], tags=["Admin"])
-    def clear_oracle_cache():
-        """Admin override to manually flush the telemetry cache."""
-        items_removed = oracle.purge_cache()
-        return {"message": "Cache successfully purged", "items_removed": items_removed}
+        raise HTTPException(status_code=400, detail=f"Region '{region}' is not supported.")
 
     response.headers["Cache-Control"] = f"public, max-age={oracle.TTL_SECONDS}"
-
     return oracle.get_live_carbon_intensity(region)
+
 
 @app.post("/api/v1/carbon/batch", response_model=List[CarbonResponse], dependencies=[Depends(verify_api_key)], tags=["Telemetry"])
 def get_batch_carbon_intensity(request: BatchCarbonRequest):
+    """Retrieves real-time carbon intensity data for multiple regions simultaneously."""
     results = []
     for r in request.regions:
         r_upper = r.upper()
         if r_upper in oracle.SUPPORTED_REGIONS:
             results.append(oracle.get_live_carbon_intensity(r_upper))
     return results
+
+
+@app.delete("/api/v1/carbon/cache", dependencies=[Depends(verify_api_key)], tags=["Admin"])
+def clear_oracle_cache() -> dict:
+    """Admin override to manually flush the telemetry cache."""
+    items_removed = oracle.purge_cache()
+    return {"message": "Cache successfully purged", "items_removed": items_removed}
