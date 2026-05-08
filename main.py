@@ -53,10 +53,9 @@ async def add_process_time_header(request: Request, call_next):
     response.headers["X-Process-Time"] = str(process_time)
     return response
 
-# Routes
 @app.get("/", include_in_schema=False)
-def redirect_to_docs():
-    """Redirect root pings to Swagger UI Documentation."""
+def root_redirect():
+    """Redirects the root URL directly to the API documentation."""
     return RedirectResponse(url="/docs")
 
 @app.get("/health", tags=["System"])
