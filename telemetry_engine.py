@@ -3,7 +3,7 @@ import random
 import time
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Dict
+from typing import Dict, Tuple
 
 from pydantic import BaseModel
 
@@ -31,9 +31,10 @@ class CarbonIntensityAPI:
     TTL_SECONDS = 300
 
     def __init__(self):
-        self._cache: Dict[str, tuple[float, CarbonData]] = {}
+        self._cache: Dict[str, Tuple[float, CarbonData]] = {}
 
     def get_live_carbon_intensity(self, region: str) -> CarbonData:
+        """Retrieves or generates carbon intensity telemetry for a given region."""
         region = region.upper()
 
         if region not in self.SUPPORTED_REGIONS:
@@ -41,13 +42,6 @@ class CarbonIntensityAPI:
             raise ValueError(f"Region '{region}' is not supported.")
 
         current_time = time.time()
-
-        def purge_cache(self) -> int:
-            """Clears the internal memory cache and returns the number of items cleared."""
-            cleared_items = len(self._cache)
-            self._cache.clear()
-            logger.info(f"Admin override: Cleared {cleared_items} items from cache.")
-            return cleared_items
 
         if region in self._cache:
             expires_at, cached_data = self._cache[region]
@@ -77,3 +71,10 @@ class CarbonIntensityAPI:
 
         self._cache[region] = (current_time + self.TTL_SECONDS, response_data)
         return response_data
+
+    def purge_cache(self) -> int:
+        """Clears the internal memory cache and returns the number of items cleared."""
+        cleared_items = len(self._cache)
+        self._cache.clear()
+        logger.info(f"Admin override: Cleared {cleared_items} items from cache.")
+        return cleared_items
