@@ -7,6 +7,8 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from pydantic import BaseModel, Field
 from telemetry_engine import CarbonIntensityAPI
 from auth import verify_api_key
+from fastapi import Response
+
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] ESG_API: %(message)s")
 logger = logging.getLogger("FastAPI")
@@ -67,12 +69,15 @@ def health_check():
         "uptime_seconds": round(uptime, 2)
     }
 
+
 @app.get("/api/v1/carbon/{region}", response_model=CarbonResponse, dependencies=[Depends(verify_api_key)], tags=["Telemetry"])
-def get_carbon_intensity(region: str):
+def get_carbon_intensity(region: str, response: Response):
     region = region.upper()
     if region not in oracle.SUPPORTED_REGIONS:
-        logger.warning(f"Invalid region requested: {region}")
-        raise HTTPException(status_code=400, detail=f"Region {region} not supported.")
+        raise HTTPException(status_code=400, detail="Region not supported")
+
+    response.headers["Cache-Control"] = f"public, max-age={oracle.TTL_SECONDS}"
+
     return oracle.get_live_carbon_intensity(region)
 
 @app.post("/api/v1/carbon/batch", response_model=List[CarbonResponse], dependencies=[Depends(verify_api_key)], tags=["Telemetry"])
