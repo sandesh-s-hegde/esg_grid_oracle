@@ -42,6 +42,13 @@ class CarbonIntensityAPI:
 
         current_time = time.time()
 
+        def purge_cache(self) -> int:
+            """Clears the internal memory cache and returns the number of items cleared."""
+            cleared_items = len(self._cache)
+            self._cache.clear()
+            logger.info(f"Admin override: Cleared {cleared_items} items from cache.")
+            return cleared_items
+
         if region in self._cache:
             expires_at, cached_data = self._cache[region]
             if current_time < expires_at:

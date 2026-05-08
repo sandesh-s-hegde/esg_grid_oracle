@@ -76,6 +76,12 @@ def get_carbon_intensity(region: str, response: Response):
     if region not in oracle.SUPPORTED_REGIONS:
         raise HTTPException(status_code=400, detail="Region not supported")
 
+    @app.delete("/api/v1/carbon/cache", dependencies=[Depends(verify_api_key)], tags=["Admin"])
+    def clear_oracle_cache():
+        """Admin override to manually flush the telemetry cache."""
+        items_removed = oracle.purge_cache()
+        return {"message": "Cache successfully purged", "items_removed": items_removed}
+
     response.headers["Cache-Control"] = f"public, max-age={oracle.TTL_SECONDS}"
 
     return oracle.get_live_carbon_intensity(region)
