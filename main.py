@@ -10,21 +10,25 @@ from pydantic import BaseModel, Field
 from auth import verify_api_key
 from telemetry_engine import CarbonIntensityAPI
 
+from contextlib import asynccontextmanager
+
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] ESG_API: %(message)s")
 logger = logging.getLogger("FastAPI")
 
-BOOT_TIME = time.time()
-oracle = CarbonIntensityAPI()
+app_state = {}
 
-app = FastAPI(title="ESG Grid Oracle API", version="1.3.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup logic
+    app_state["boot_time"] = time.time()
+    logger.info("ESG Oracle booting sequence initiated.")
+    yield
+    # Shutdown logic
+    logger.info("ESG Oracle shutting down safely.")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app = FastAPI(title="ESG Grid Oracle API", version="1.4.0", lifespan=lifespan)
+
 
 
 class CarbonResponse(BaseModel):
@@ -65,11 +69,10 @@ def root_redirect():
     """Redirects the root URL directly to the API documentation."""
     return RedirectResponse(url="/docs")
 
-
 @app.get("/health", tags=["System"])
 def health_check() -> dict:
     """Returns the operational status and uptime of the service."""
-    uptime = time.time() - BOOT_TIME
+    uptime = time.time() - app_state.get("boot_time", time.time())
     return {
         "status": "online",
         "service": "ESG Grid Oracle",
