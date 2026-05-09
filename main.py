@@ -1,8 +1,9 @@
 import logging
 import time
+from contextlib import asynccontextmanager
 from typing import List
 
-from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel, Field
@@ -10,33 +11,34 @@ from pydantic import BaseModel, Field
 from auth import verify_api_key
 from telemetry_engine import CarbonIntensityAPI
 
-from contextlib import asynccontextmanager
-
-
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] ESG_API: %(message)s")
 logger = logging.getLogger("FastAPI")
 
 app_state = {}
+oracle = CarbonIntensityAPI()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup logic
     app_state["boot_time"] = time.time()
     logger.info("ESG Oracle booting sequence initiated.")
     yield
-    # Shutdown logic
     logger.info("ESG Oracle shutting down safely.")
 
 app = FastAPI(title="ESG Grid Oracle API", version="1.4.0", lifespan=lifespan)
 
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class CarbonResponse(BaseModel):
     timestamp: str = Field(..., description="ISO 8601 UTC timestamp of the reading")
     region: str = Field(..., description="2-letter country code", examples=["FR", "DE"])
     intensity_gco2_kwh: int = Field(..., description="Grams of CO2 equivalent per kWh")
     grid_status: str = Field(..., description="Dispatch status: GREEN, AMBER, or RED", examples=["GREEN"])
-
 
 class BatchCarbonRequest(BaseModel):
     regions: List[str] = Field(..., description="List of 2-letter country codes to query", examples=[["FR", "DE", "IE"]])
@@ -53,7 +55,6 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
             "path": request.url.path
         }
     )
-
 
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
@@ -80,7 +81,9 @@ def health_check() -> dict:
     }
 
 
-@app.get("/api/v1/carbon/{region}", response_model=CarbonResponse, dependencies=[Depends(verify_api_key)], tags=["Telemetry"])
+secure_router = APIRouter(prefix="/api/v1/carbon", dependencies=[Depends(verify_api_key)])
+
+@secure_router.get("/{region}", response_model=CarbonResponse, tags=["Telemetry"])
 def get_carbon_intensity(region: str, response: Response):
     """Retrieves real-time carbon intensity data for a specific supported region."""
     region = region.upper()
@@ -90,8 +93,7 @@ def get_carbon_intensity(region: str, response: Response):
     response.headers["Cache-Control"] = f"public, max-age={oracle.TTL_SECONDS}"
     return oracle.get_live_carbon_intensity(region)
 
-
-@app.post("/api/v1/carbon/batch", response_model=List[CarbonResponse], dependencies=[Depends(verify_api_key)], tags=["Telemetry"])
+@secure_router.post("/batch", response_model=List[CarbonResponse], tags=["Telemetry"])
 def get_batch_carbon_intensity(request: BatchCarbonRequest):
     """Retrieves real-time carbon intensity data for multiple regions simultaneously."""
     results = []
@@ -101,9 +103,10 @@ def get_batch_carbon_intensity(request: BatchCarbonRequest):
             results.append(oracle.get_live_carbon_intensity(r_upper))
     return results
 
-
-@app.delete("/api/v1/carbon/cache", dependencies=[Depends(verify_api_key)], tags=["Admin"])
+@secure_router.delete("/cache", tags=["Admin"])
 def clear_oracle_cache() -> dict:
     """Admin override to manually flush the telemetry cache."""
     items_removed = oracle.purge_cache()
     return {"message": "Cache successfully purged", "items_removed": items_removed}
+
+app.include_router(secure_router)
