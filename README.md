@@ -1,7 +1,7 @@
 # 🌍 ESG Grid Oracle: Carbon-Aware Routing Node
 
 **Author:** Sandesh S. Hegde  
-**Version:**  
+**Version:** 1.0.0  
 
 ## 📖 Executive Summary
 
@@ -20,10 +20,10 @@ With the introduction of strict global sustainability mandates (like the EU's CS
 This microservice acts as the intelligent environmental router. It is built on a strictly asynchronous, high-performance architecture:
 
 ### 1. In-Memory TTL Caching Engine
-To prevent upstream API latency and reduce external compute costs, the API utilizes a **5-Minute Time-To-Live (TTL) Cache**. Grid carbon intensity updates in intervals, not milliseconds; this architectural pattern ensures AI agents receive instantaneous telemetry without hammering upstream data providers.
+To prevent upstream API latency and reduce external compute costs, the API utilizes a **5-Minute Time-To-Live (TTL) Cache**. Grid carbon intensity updates in intervals, not milliseconds; this architectural pattern ensures AI agents receive instantaneous telemetry without hammering upstream data providers. It also includes a secured Admin override for manual cache purging.
 
 ### 2. Zero-Trust Security & Idempotency
-Enterprise endpoints are never left exposed. The system implements an **API Key Dependency Injection** model at the route level, ensuring secure, zero-trust communication. Strict CORS middleware protects against unauthorized browser-based cross-origin requests.
+Enterprise endpoints are never left exposed. The system implements an **API Key Dependency Injection** model secured globally via a centralized `APIRouter`, ensuring zero-trust communication across all telemetry endpoints. Strict CORS middleware protects against unauthorized browser-based cross-origin requests.
 
 ### 3. High-Throughput Batch Processing
 When LLM agents evaluate multiple potential freight routes simultaneously, pinging the API for individual regions causes unnecessary network overhead. The API utilizes a vectorized approach, allowing the autonomous swarm to evaluate massive geographic regions (e.g., FR, DE, IE) in a single optimized payload.
@@ -36,25 +36,26 @@ The system implements a **Global Exception Handler** to intercept unexpected ser
 ## 🚀 Key Features
 
 ### 🛡️ 1. Enterprise Security & Resilience
-* **Strict Validation:** `pydantic` schemas enforce strict data typing and inject rich contextual examples directly into the Swagger UI.
+* **Strict Validation:** Modern `pydantic` and `pydantic-settings` schemas enforce strict data typing, secure environment variable loading, and inject rich contextual examples directly into the Swagger UI.
 * **Non-Root Execution:** The `Dockerfile` is hardened to run exclusively under an unprivileged user profile for maximum cloud security.
 * **Continuous Integration:** Fully automated GitHub Actions CI pipeline running `pytest` and HTTPX validations on every push.
 
 ### 📊 2. Deep Health & Telemetry
 * **Performance Middleware:** Injects exact millisecond execution times into the `X-Process-Time` HTTP header for distributed tracing.
-* **Uptime Tracking:** The `/health` endpoint actively calculates system boot-time to help load balancers detect memory leaks or stale containers.
+* **Lifecycle Management:** A modern `asynccontextmanager` lifespan safely tracks system boot-times and teardowns, exposed via the `/health` endpoint to help load balancers detect memory leaks or stale containers.
 
 ### 🤖 3. Agentic Integration
 * **Deterministic Traffic Lighting:** Abstracts complex gCO2eq/kWh math into standardized `GREEN`, `AMBER`, and `RED` dispatch signals for rigid downstream AI and RPA consumption.
 * **Swarm Ready:** Architected specifically to act as an external tool/node for LLM Swarms (Gemini/OpenAI) to reason against during automated freight negotiation.
-* **Carbon-Aware Routing:** Natively integrates with the ESG Grid Oracle to perform real-time spatial energy arbitrage, actively routing fleets toward renewable-powered energy grids.
+* **Carbon-Aware Routing:** Natively integrates with the **Digital Capacity Optimizer** to perform real-time spatial energy arbitrage, actively routing fleets toward renewable-powered energy grids.
+
 ---
 
 ## ⚙️ Technical Architecture
 
 * **Language:** Python 3.12+
 * **Framework:** FastAPI (Asynchronous ASGI)
-* **Data Validation:** Pydantic 2.0
+* **Data Validation:** Pydantic 2.0 & Pydantic Settings
 * **Testing:** Pytest & HTTPX (TestClient)
 * **DevOps:** Docker Compose, `.dockerignore` optimized builds, GitHub Actions (CI/CD)
 
@@ -81,10 +82,13 @@ make docker-up
 
 # 4. Verify System Health
 curl http://localhost:8000/health
+
 ```
 
 ### Developer Commands
+
 A `Makefile` is included to standardize workflows:
+
 * `make install` - Installs Python requirements.
 * `make run` - Runs the application locally via Uvicorn.
 * `make test` - Executes the `pytest` suite.
@@ -93,7 +97,8 @@ A `Makefile` is included to standardize workflows:
 
 ## ☁️ Production Infrastructure
 
-This application is designed for containerized deployment in environments like Kubernetes, AWS ECS, or Render. 
+This application is designed for containerized deployment in environments like Kubernetes, AWS ECS, or Render.
+
 * **Compute:** Containerized FastAPI web service.
 * **Security:** Non-root execution profile (`appuser`).
 * **CI/CD:** Automated testing pipeline via GitHub Actions on every push to `main` to ensure zero regression.
@@ -105,8 +110,8 @@ This application is designed for containerized deployment in environments like K
 This project is structured for incremental enterprise scale, moving from a foundational simulation API to a live, global telemetry ingestion engine.
 
 | Phase | Maturity Level | Key Capabilities | Status |
-| :--- | :--- | :--- | :--- |
-| **Phase 1** | **Foundation (v1.3)** | **FastAPI Gateway, TTL Caching, Batch Processing, Zero-Trust Auth, and CI/CD Pipeline.** | ✅ **Stable** |
+| --- | --- | --- | --- |
+| **Phase 1** | **Foundation (v1.0.0)** | **FastAPI Gateway, Lifespan State, Pydantic Settings, Global Secure Routing, TTL Caching, and CI/CD.** | ✅ **Released** |
 | **Phase 2** | **Live Integrations** | Hot-swapping the stochastic simulation engine for live commercial APIs (e.g., WattTime, ElectricityMaps). | 🚧 Next |
 | **Phase 3** | **Predictive AI** | Implementing local time-series models (ARIMA/Prophet) to forecast grid intensity 24 hours in advance. | 🚧 Planned |
 | **Phase 4** | **Global Expansion** | Extending region support beyond the EU to cover NAMER (ERCOT, PJM) and APAC energy grids. | 💡 Vision |
@@ -114,4 +119,4 @@ This project is structured for incremental enterprise scale, moving from a found
 
 ---
 
-> ➡️ **Ecosystem Integration:** This repository acts as the "environmental conscience" of the logistics ecosystem. The brain dictating these actions is the **[Digital Capacity Optimizer](https://github.com/sandesh-s-hegde/digital_capacity_optimizer)**, which queries this API to calculate multi-modal routing logic.
+> ➡️ **The Complete Ecosystem:** The ESG Grid Oracle represents the final pillar of this autonomous logistics triad. Combined with the **[Digital Capacity Optimizer](https://github.com/sandesh-s-hegde/digital_capacity_optimizer)** (The Brain) and the **[RPA Legacy Freight Bridge](https://github.com/sandesh-s-hegde/rpa-freight-bridge)** (The Hands), this architecture proves that enterprise supply chains can achieve zero-touch hyperautomation while remaining strictly carbon-aware. The system is complete, backward-compatible, and ready for the future of freight.
